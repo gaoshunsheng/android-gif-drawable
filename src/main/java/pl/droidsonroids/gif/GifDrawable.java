@@ -683,37 +683,89 @@ public class GifDrawable extends Drawable implements Animatable, MediaPlayerCont
         mApplyTransformation = true;
     }
 
-    /**
-     * Reads and renders new frame if needed then draws last rendered frame.
-     *
-     * @param canvas canvas to draw into
-     */
-    @Override
-    public void draw(Canvas canvas) {
-        if (mApplyTransformation) {
-            mDstRect.set(getBounds());
-            mSx = (float) mDstRect.width() / mMetaData[0];
-            mSy = (float) mDstRect.height() / mMetaData[1];
-            mApplyTransformation = false;
-        }
-        if (mPaint.getShader() == null) {
-            if (mIsRunning)
-                renderFrame(mColors, mGifInfoPtr, mMetaData);
-            else
-                mMetaData[4] = -1;
+   /**
+	 * 记录当前播放到了第几帧
+	 */
+	private int currentFrame = 1;
+	/**
+	* @Title: getCurrentFrame 
+	* @Description: 获取当前帧数
+	* @author gaoshunsheng
+	* @param @return
+	* @return int
+	* @throws
+	 */
+	public int getCurrentFrame() {
+		return currentFrame;
+	}
 
-            canvas.scale(mSx, mSy);
-            final int[] colors = mColors;
+	/**
+	 * 记录当前循环次数（第几次循环）
+	 */
+	public int currentLoopCount = 1;
+	
+	/**
+	 * Gif动画监听器
+	 */
+	public GifListener gifListener;
+	
+	/**
+	* @Title: setGifListener 
+	* @Description: 设置Gif动画监听器
+	* @author gaoshunsheng
+	* @param @param gifListener
+	* @return void
+	* @throws
+	 */
+	public void setGifListener(GifListener gifListener) {
+		this.gifListener = gifListener;
+	}
 
-            if (colors != null)
-                canvas.drawBitmap(colors, 0, mMetaData[0], 0f, 0f, mMetaData[0], mMetaData[1], true, mPaint);
+	/**
+	 * Reads and renders new frame if needed then draws last rendered frame.
+	 * @param canvas canvas to draw into
+	 */
+	@Override
+	public void draw ( Canvas canvas )
+	{
+		if(null != this.gifListener){
+			//回调当前帧数
+			this.gifListener.frameCount(currentFrame, getNumberOfFrames());
+		}
+		currentFrame ++;
+		if(currentFrame > getNumberOfFrames()){
+			
+			if(null != this.gifListener){
+				//回调Gif播放结束
+				this.gifListener.gifEnd(currentLoopCount);
+			}
+			currentLoopCount ++;
+			currentFrame = 1;
+		}
+		
+		if ( mApplyTransformation )
+		{
+			mDstRect.set( getBounds() );
+			mSx = ( float ) mDstRect.width() / mMetaData[ 0 ];
+			mSy = ( float ) mDstRect.height() / mMetaData[ 1 ];
+			mApplyTransformation = false;
+		}
+		if ( mPaint.getShader() == null )
+		{
+			if ( mIsRunning )
+				renderFrame( mColors, mGifInfoPtr, mMetaData );
+			else
+				mMetaData[ 4 ] = -1;
 
-            if (mMetaData[4] >= 0 && mMetaData[2] > 1)
-                UI_HANDLER.postDelayed(mInvalidateTask, mMetaData[4]);//TODO don't post if message for given frame was already posted
-        } else
-            canvas.drawRect(mDstRect, mPaint);
-    }
+			canvas.scale( mSx, mSy );
+			canvas.drawBitmap( mColors, 0, mMetaData[ 0 ], 0f, 0f, mMetaData[ 0 ], mMetaData[ 1 ], true, mPaint );
 
+			if ( mMetaData[ 4 ] >= 0 && mMetaData[ 2 ] > 1 )
+				UI_HANDLER.postDelayed( mInvalidateTask, mMetaData[ 4 ] );//TODO don't post if message for given frame was already posted
+		}
+		else
+			canvas.drawRect( mDstRect, mPaint );
+	}
     /**
      * @return the paint used to render this drawable
      */
